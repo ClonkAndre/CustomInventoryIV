@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.9.34728.123
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CustomInventoryIV", "CustomInventoryIV\CustomInventoryIV.csproj", "{46C296DA-00EE-4B83-9B85-61BEDE599329}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CustomInventoryTest", "CustomInventoryTest\CustomInventoryTest.csproj", "{93E47B0B-6019-4569-A32B-25E65D783A7D}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{46C296DA-00EE-4B83-9B85-61BEDE599329}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{46C296DA-00EE-4B83-9B85-61BEDE599329}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{46C296DA-00EE-4B83-9B85-61BEDE599329}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{46C296DA-00EE-4B83-9B85-61BEDE599329}.Release|Any CPU.Build.0 = Release|Any CPU
+		{93E47B0B-6019-4569-A32B-25E65D783A7D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{93E47B0B-6019-4569-A32B-25E65D783A7D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{93E47B0B-6019-4569-A32B-25E65D783A7D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{93E47B0B-6019-4569-A32B-25E65D783A7D}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {5286B4C4-02A4-4952-8B3E-18CFCBA74FB9}
+	EndGlobalSection
+EndGlobal
