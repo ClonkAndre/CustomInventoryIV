@@ -26,7 +26,7 @@ namespace CustomInventoryIV.Inventories
         private string bottomRightText;
         private Color bottomRightColor;
 
-        private IntPtr icon;
+        private CITexture icon;
 
         /// <summary>
         /// The item collection of the right-click popup menu of this <see cref="BasicInventoryItem"/>.
@@ -132,7 +132,7 @@ namespace CustomInventoryIV.Inventories
         /// <summary>
         /// The icon of this item.
         /// </summary>
-        public IntPtr Icon
+        public CITexture Icon
         {
             get => icon;
             set => icon = value;

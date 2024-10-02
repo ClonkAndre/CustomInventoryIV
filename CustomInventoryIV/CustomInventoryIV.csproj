@@ -43,6 +43,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Base\InventoryBase.cs" />
+    <Compile Include="CITexture.cs" />
     <Compile Include="Helper.cs" />
     <Compile Include="Inventories\BasicInventory.cs" />
     <Compile Include="Inventories\BasicInventoryItem.cs" />

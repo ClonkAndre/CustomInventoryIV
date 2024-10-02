@@ -22,7 +22,7 @@ namespace CustomInventoryTest
         private int playerPedHandle;
         private uint lastLoadedEpisode;
 
-        public Dictionary<int, IntPtr> loadedWeaponTextures;
+        public Dictionary<int, CITexture> loadedWeaponTextures;
 
         private InventoryPool inventoryPool;
         private BasicInventory basicInventory;
@@ -53,7 +53,7 @@ namespace CustomInventoryTest
         #region Constructor
         public Main()
         {
-            loadedWeaponTextures = new Dictionary<int, IntPtr>(32);
+            loadedWeaponTextures = new Dictionary<int, CITexture>(32);
             inventoryPool = new InventoryPool();
 
             Uninitialize += Main_Uninitialize;
@@ -61,6 +61,35 @@ namespace CustomInventoryTest
             GameLoad += Main_GameLoad;
             OnImGuiRendering += Main_OnImGuiRendering;
             Tick += Main_Tick;
+        }
+        #endregion
+
+        #region Methods
+        private void DropItem(BasicInventory inventory, BasicInventoryItem item)
+        {
+            if (inventory == null)
+                return;
+            if (item == null)
+                return;
+
+            int weaponType = Convert.ToInt32(item.Tags["WeaponType"]);
+
+            GET_AMMO_IN_CHAR_WEAPON(playerPedHandle, weaponType, out int ammo);
+
+            REMOVE_WEAPON_FROM_CHAR(playerPedHandle, weaponType);
+
+            GET_CHAR_COORDINATES(playerPedHandle, out Vector3 pos);
+
+            // Disable ability for local player to any pickups
+            DISABLE_LOCAL_PLAYER_PICKUPS(true);
+            blockPlayerAbilityToCollectPickup = true;
+            blockPosition = pos;
+
+            // Creates a weapon pickup at the players location
+            CreateWeaponPickupAtPosition(pos, weaponType, ammo);
+
+            // Removes the item out of the inventory
+            basicInventory.RemoveItem(item);
         }
         #endregion
 
@@ -122,7 +151,7 @@ namespace CustomInventoryTest
         {
             GET_WEAPONTYPE_MODEL(weaponType, out uint model);
 
-            Vector3 spawnPos = NativeWorld.GetGroundPosition(pos) + new Vector3(0f, 0f, GENERATE_RANDOM_FLOAT_IN_RANGE(0.01f, 0.2f));
+            Vector3 spawnPos = NativeWorld.GetGroundPosition(pos) + new Vector3(0f, 0f, 0.05f);
             CREATE_PICKUP_ROTATE(model, (uint)ePickupType.PICKUP_TYPE_WEAPON, (uint)ammo, spawnPos, new Vector3(90f, 0f, GENERATE_RANDOM_FLOAT_IN_RANGE(0f, 90f)), out int pickup);
 
             // DOES_PICKUP_EXIST
@@ -139,6 +168,7 @@ namespace CustomInventoryTest
         private void Main_Initialized(object sender, EventArgs e)
         {
             basicInventory = new BasicInventory(8);
+            basicInventory.OnItemDraggedOut += BasicInventory_OnItemDraggedOut;
             basicInventory.OnPopupItemClick += BasicInventory_OnPopupItemClick;
             basicInventory.OnItemClick += BasicInventory_OnItemClick;
             basicInventory.Name = "TestInventory";
@@ -156,8 +186,8 @@ namespace CustomInventoryTest
                 {
                     for (int i = 0; i < 32; i++)
                     {
-                        IntPtr txt = loadedWeaponTextures[i];
-                        ImGuiIV.ReleaseTexture(ref txt);
+                        CITexture txt = loadedWeaponTextures[i];
+                        ImGuiIV.ReleaseTexture(ref txt.Texture);
                     }
                     loadedWeaponTextures.Clear();
                 }
@@ -180,7 +210,7 @@ namespace CustomInventoryTest
                     // Create texture
                     if (ImGuiIV.CreateTextureFromFile(string.Format("{0}\\{1}", path, fileName), out IntPtr txtPtr, out int w, out int h, out eResult r))
                     {
-                        loadedWeaponTextures.Add(result, txtPtr);
+                        loadedWeaponTextures.Add(result, new CITexture(txtPtr, new Size(w, h)));
                     }
                 }
             }
@@ -191,30 +221,20 @@ namespace CustomInventoryTest
             inventoryPool.ProcessDrawing(ctx);
         }
 
+        private void BasicInventory_OnItemDraggedOut(BasicInventory sender, BasicInventoryItem item, int itemIndex)
+        {
+            if (sender.Name == "TestInventory")
+            {
+                DropItem(sender, item);
+            }
+        }
         private void BasicInventory_OnPopupItemClick(BasicInventory sender, BasicInventoryItem item, string popupItemName)
         {
             if (sender.Name == "TestInventory")
             {
                 if (popupItemName == "Drop")
                 {
-                    int weaponType = Convert.ToInt32(item.Tags["WeaponType"]);
-
-                    GET_AMMO_IN_CHAR_WEAPON(playerPedHandle, weaponType, out int ammo);
-
-                    REMOVE_WEAPON_FROM_CHAR(playerPedHandle, weaponType);
-
-                    GET_CHAR_COORDINATES(playerPedHandle, out Vector3 pos);
-
-                    // Disable ability for local player to any pickups
-                    DISABLE_LOCAL_PLAYER_PICKUPS(true);
-                    blockPlayerAbilityToCollectPickup = true;
-                    blockPosition = pos;
-
-                    // Creates a weapon pickup at the players location
-                    CreateWeaponPickupAtPosition(pos, weaponType, ammo);
-
-                    // Removes the item out of the inventory
-                    basicInventory.RemoveItem(item);
+                    DropItem(sender, item);
                 }
             }
         }
@@ -226,7 +246,21 @@ namespace CustomInventoryTest
             }
             else if (itemIndex == 1)
             {
-                sender.Resize(8);
+                List<BasicInventoryItem> leftBehindItems = sender.Resize(8);
+
+                if (leftBehindItems != null)
+                {
+                    IVGame.Console.PrintError(string.Format("There where {0} left behind items:", leftBehindItems.Count));
+                    for (int i = 0; i < leftBehindItems.Count; i++)
+                    {
+                        BasicInventoryItem leftBehindItem = leftBehindItems[i];
+                        IVGame.Console.PrintWarning(leftBehindItem.TopLeftText);
+                    }
+                }
+                else
+                {
+                    IVGame.Console.PrintError("There where no left behind items.");
+                }
             }
         }
 
@@ -284,6 +318,7 @@ namespace CustomInventoryTest
 
                     item.TopLeftText = GetWeaponName(type);
                     item.BottomLeftText = "0 Bullets";
+
                     item.Icon = loadedWeaponTextures[weaponType];
 
                     basicInventory.AddItem(item);

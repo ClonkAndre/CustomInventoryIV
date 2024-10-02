@@ -94,5 +94,14 @@ namespace CustomInventoryIV.Base
         /// </summary>
         public abstract void Draw(ImGuiIV_DrawingContext backgroundDrawList);
 
+        public virtual void PushStyle()
+        {
+
+        }
+        public virtual void PopStyle()
+        {
+
+        }
+
     }
 }

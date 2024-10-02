@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using System.Numerics;
@@ -55,41 +56,31 @@ namespace CustomInventoryIV.Inventories
         /// <summary>
         /// Creates a new instance of the <see cref="BasicInventory"/> class.
         /// </summary>
-        /// <param name="size">The inventory size.</param>
+        /// <param name="capacity">The inventory size.</param>
         /// <param name="newLineAt">
         /// Defines the number at which a new line will be started.
-        /// <para>Example: <paramref name="size"/> is set to 8, and <paramref name="newLineAt"/> is set to 4, this means a new line will be started at the 4th item.</para>
+        /// <para>Example: <paramref name="capacity"/> is set to 8, and <paramref name="newLineAt"/> is set to 4, this means a new line will be started at the 4th item.</para>
         /// </param>
-        public BasicInventory(int size, int newLineAt)
+        public BasicInventory(int capacity, int newLineAt)
         {
-            items = new BasicInventoryItem[size];
-            Capacity = size;
+            items = new BasicInventoryItem[capacity];
+            Capacity = capacity;
             NewLineAt = newLineAt;
         }
 
         /// <summary>
         /// Creates a new instance of the <see cref="BasicInventory"/> class.
         /// </summary>
-        /// <param name="size">The inventory size.</param>
-        public BasicInventory(int size)
+        /// <param name="capacity">The inventory size.</param>
+        public BasicInventory(int capacity)
         {
-            items = new BasicInventoryItem[size];
-            Capacity = size;
-            NewLineAt = size / 2;
+            items = new BasicInventoryItem[capacity];
+            Capacity = capacity;
+            NewLineAt = capacity / 2;
         }
         #endregion
 
         #region Methods
-        public void Resize(int newSize)
-        {
-            isResizing = true;
-
-            capacity = newSize;
-            items = Helper.ResizeArray(items, capacity);
-
-            isResizing = false;
-        }
-
         private void DrawItem(int index)
         {
             BasicInventoryItem item = null;
@@ -99,6 +90,8 @@ namespace CustomInventoryIV.Inventories
 
             if ((index % NewLineAt) != 0)
                 ImGuiIV.SameLine();
+            else
+                ImGuiIV.Spacing();
 
             if (ImGuiIV.BeginChild(string.Format("##BasicInventory_{0}_Child_{1}", ID, index), ItemSize, eImGuiChildFlags.None, eImGuiWindowFlags.NoScrollWithMouse | eImGuiWindowFlags.NoScrollbar))
             {
@@ -110,7 +103,7 @@ namespace CustomInventoryIV.Inventories
 
                 ImGuiIV.PushStyleVar(eImGuiStyleVar.FramePadding, Vector2.Zero);
 
-                if (ImGuiIV.Button(string.Format("##BasicInventory_{0}_ChildButton_{1}", ID, index), ItemSize))
+                if (ImGuiIV.Button(string.Format("{0}##BasicInventory_{1}_ChildButton_{2}", item == null ? "" : item.ButtonText, ID, index), ItemSize))
                     OnItemClick?.Invoke(this, item, index);
 
                 ImGuiIV.PopStyleVar();
@@ -169,7 +162,7 @@ namespace CustomInventoryIV.Inventories
                         Marshal.StructureToPtr(index, ptr, true);
 
                         ImGuiIV.SetDragDropPayload(Name, ptr, (uint)size, eImGuiCond.None);
-                        ImGuiIV.Image(item.Icon, new Vector2(64f));
+                        ImGuiIV.Image(item.Icon.Texture, new Vector2(item.Icon.GetWidth(), item.Icon.GetHeight()));
                         ImGuiIV.EndDragDropSource();
                     }
 
@@ -191,30 +184,27 @@ namespace CustomInventoryIV.Inventories
                     }
 
                     // Draw Icon
-                    if (item.Icon != IntPtr.Zero)
+                    if (item.Icon != null)
                     {
-                        //SizeF s = new SizeF(256f, 128f);
-                        SizeF s = new SizeF(ItemSize.X, ItemSize.Y);
-                        float aspectRatio = s.Width / s.Height;
-
-                        s = new SizeF(s.Width / aspectRatio, s.Height / aspectRatio);
+                        float aspectRatio = item.Icon.GetAspectRatio();
+                        SizeF s = new SizeF(item.Icon.GetWidth() / aspectRatio, item.Icon.GetHeight() / aspectRatio);
 
                         Vector2 centerPos = new Vector2(origin.X + ItemSize.X / 2f, origin.Y + ItemSize.Y / 2f);
-                        ctx.AddImage(item.Icon, new RectangleF(centerPos.X - s.Width / 2f, centerPos.Y - s.Height / 2f, s.Width, s.Height), Color.White);
+                        ctx.AddImage(item.Icon.Texture, new RectangleF(centerPos.X - s.Width / 2f, centerPos.Y - s.Height / 2f, s.Width, s.Height), Color.White);
                     }
 
                     // Draw Top Left Text
                     if (!string.IsNullOrWhiteSpace(item.TopLeftText))
                     {
-                        ImGuiIV.SetCursorScreenPos(origin + new Vector2(3f, 0f));
+                        ImGuiIV.SetCursorScreenPos(origin + new Vector2(5f, 4f));
                         ImGuiIV.TextColored(item.TopLeftColor, item.TopLeftText);
                     }
 
                     // Draw Top Right Text
                     if (!string.IsNullOrWhiteSpace(item.TopRightText))
                     {
-                        Vector2 textSize = ImGuiIV.CalcTextSize(item.TopLeftText);
-                        ImGuiIV.SetCursorScreenPos(origin + new Vector2(ItemSize.X - textSize.X, 0f));
+                        Vector2 textSize = ImGuiIV.CalcTextSize(item.TopRightText);
+                        ImGuiIV.SetCursorScreenPos(origin + new Vector2(ItemSize.X - textSize.X, 0f) + new Vector2(-5f, 4f));
                         ImGuiIV.TextColored(item.TopRightColor, item.TopRightText);
                     }
 
@@ -222,7 +212,7 @@ namespace CustomInventoryIV.Inventories
                     if (!string.IsNullOrWhiteSpace(item.BottomLeftText))
                     {
                         Vector2 textSize = ImGuiIV.CalcTextSize(item.BottomLeftText);
-                        ImGuiIV.SetCursorScreenPos(origin + new Vector2(0f, ItemSize.X - textSize.Y) + new Vector2(3f, 0f));
+                        ImGuiIV.SetCursorScreenPos(origin + new Vector2(0f, ItemSize.X - textSize.Y) + new Vector2(5f, -4f));
                         ImGuiIV.TextColored(item.BottomLeftColor, item.BottomLeftText);
                     }
 
@@ -230,7 +220,7 @@ namespace CustomInventoryIV.Inventories
                     if (!string.IsNullOrWhiteSpace(item.BottomRightText))
                     {
                         Vector2 textSize = ImGuiIV.CalcTextSize(item.BottomRightText);
-                        ImGuiIV.SetCursorScreenPos(origin + new Vector2(ItemSize.X - textSize.X, ItemSize.Y - textSize.Y));
+                        ImGuiIV.SetCursorScreenPos(origin + new Vector2(ItemSize.X - textSize.X, ItemSize.Y - textSize.Y) - new Vector2(5f, 4f));
                         ImGuiIV.TextColored(item.BottomRightColor, item.BottomRightText);
                     }
                 }
@@ -402,6 +392,32 @@ namespace CustomInventoryIV.Inventories
             }).FirstOrDefault();
         }
 
+        /// <summary>
+        /// Changes the capacity of this <see cref="BasicInventory"/>.
+        /// </summary>
+        /// <param name="capacity">The new capacity of the <see cref="BasicInventory"/>.</param>
+        /// <returns>If the new <paramref name="capacity"/> is less then the current capacity, this will return the items that where left behind. Otherwise, <see langword="null"/> is returned.</returns>
+        public List<BasicInventoryItem> Resize(int capacity)
+        {
+            if (Capacity == capacity)
+                return null;
+
+            isResizing = true;
+
+            Capacity = capacity;
+            items = Helper.ResizeArray(items, Capacity, out List<BasicInventoryItem> leftBehindItems);
+
+            if (leftBehindItems != null)
+            {
+                if (leftBehindItems.Count == 0)
+                    leftBehindItems = null;
+            }
+
+            isResizing = false;
+
+            return leftBehindItems;
+        }
+
         private bool IsIndexValid(int index)
         {
             return index < Capacity;
@@ -459,13 +475,9 @@ namespace CustomInventoryIV.Inventories
                 return;
 
             // Push inventory style
-            ImGuiIV.PushStyleVar(eImGuiStyleVar.WindowBorderSize, 0f);
-            ImGuiIV.PushStyleVar(eImGuiStyleVar.WindowRounding, 6f);
-            ImGuiIV.PushStyleColor(eImGuiCol.FrameBg, Color.FromArgb(100, Color.Black));
+            PushStyle();
 
-            ImGuiIV.SetNextWindowBgAlpha(0.45f);
-
-            if (ImGuiIV.Begin(string.Format("##CustomInventory_{0}", ID), ref isVisible, eImGuiWindowFlags.NoDecoration))
+            if (ImGuiIV.Begin(string.Format("##CustomInventory_{0}", ID), ref isVisible, eImGuiWindowFlags.NoDecoration | eImGuiWindowFlags.AlwaysAutoResize))
             {
                 if (!isResizing)
                 {
@@ -501,8 +513,27 @@ namespace CustomInventoryIV.Inventories
             }
             ImGuiIV.End();
 
-            ImGuiIV.PopStyleVar(2);
-            ImGuiIV.PopStyleColor();
+            PopStyle();
+        }
+
+        /// <inheritdoc/>
+        public override void PushStyle()
+        {
+            ImGuiIV.PushStyleVar(eImGuiStyleVar.WindowBorderSize, 0f);
+            ImGuiIV.PushStyleVar(eImGuiStyleVar.WindowRounding, 6f);
+            ImGuiIV.PushStyleVar(eImGuiStyleVar.FrameRounding, 6f);
+
+            ImGuiIV.PushStyleColor(eImGuiCol.WindowBg, new Vector4(0.08f, 0.08f, 0.08f, 0.5f));
+            ImGuiIV.PushStyleColor(eImGuiCol.FrameBg, Color.FromArgb(100, Color.Black));
+            ImGuiIV.PushStyleColor(eImGuiCol.Button, new Vector4(0.0f, 0.0f, 0.0f, 0.7f));
+            ImGuiIV.PushStyleColor(eImGuiCol.ButtonHovered, new Vector4(0.12f, 0.12f, 0.12f, 0.9f));
+            ImGuiIV.PushStyleColor(eImGuiCol.ButtonActive, new Vector4(0.15f, 0.15f, 0.15f, 0.9f));
+        }
+        /// <inheritdoc/>
+        public override void PopStyle()
+        {
+            ImGuiIV.PopStyleVar(3);
+            ImGuiIV.PopStyleColor(5);
         }
 
     }
