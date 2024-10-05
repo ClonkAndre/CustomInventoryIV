@@ -9,6 +9,7 @@ using CustomInventoryIV.Base;
 
 using IVSDKDotNet;
 using IVSDKDotNet.Enums;
+using static IVSDKDotNet.Native.Natives;
 
 namespace CustomInventoryIV.Inventories
 {
@@ -22,6 +23,7 @@ namespace CustomInventoryIV.Inventories
         private int newLineAt;
 
         private bool isResizing;
+        private bool centerInMiddleOfScreen;
 
         private Vector2 itemSize = new Vector2(128f);
 
@@ -50,29 +52,40 @@ namespace CustomInventoryIV.Inventories
             get => itemSize;
             set => itemSize = value;
         }
+
+        /// <summary>
+        /// Centers this <see cref="BasicInventory"/> in the middle of the screen.
+        /// <para>When this is set to <see langword="true"/>, the <see cref="InventoryBase.Position"/> variable will act as an offset for the inventory.</para>
+        /// </summary>
+        public bool CenterInMiddleOfScreen
+        {
+            get => centerInMiddleOfScreen;
+            set => centerInMiddleOfScreen = value;
+        }
         #endregion
 
         #region Constructor
         /// <summary>
         /// Creates a new instance of the <see cref="BasicInventory"/> class.
         /// </summary>
+        /// <param name="name">The inventory name.</param>
         /// <param name="capacity">The inventory size.</param>
         /// <param name="newLineAt">
         /// Defines the number at which a new line will be started.
         /// <para>Example: <paramref name="capacity"/> is set to 8, and <paramref name="newLineAt"/> is set to 4, this means a new line will be started at the 4th item.</para>
         /// </param>
-        public BasicInventory(int capacity, int newLineAt)
+        public BasicInventory(string name, int capacity, int newLineAt) : base(name)
         {
             items = new BasicInventoryItem[capacity];
             Capacity = capacity;
             NewLineAt = newLineAt;
         }
-
         /// <summary>
         /// Creates a new instance of the <see cref="BasicInventory"/> class.
         /// </summary>
+        /// <param name="name">The inventory name.</param>
         /// <param name="capacity">The inventory size.</param>
-        public BasicInventory(int capacity)
+        public BasicInventory(string name, int capacity) : base(name)
         {
             items = new BasicInventoryItem[capacity];
             Capacity = capacity;
@@ -81,6 +94,20 @@ namespace CustomInventoryIV.Inventories
         #endregion
 
         #region Methods
+        public void PositionAtWorldCoordinate(Vector3 pos)
+        {
+            GET_GAME_VIEWPORT_ID(out int viewportid);
+
+            //if (!CAM_IS_SPHERE_VISIBLE(viewportid, pos, 2f))
+            //{
+            //    canRender = false;
+            //    return;
+            //}
+
+            GET_VIEWPORT_POSITION_OF_COORD(pos, viewportid, out Vector2 screenPos);
+            Position = screenPos;
+        }
+
         private void DrawItem(int index)
         {
             BasicInventoryItem item = null;
@@ -186,8 +213,21 @@ namespace CustomInventoryIV.Inventories
                     // Draw Icon
                     if (item.Icon != null)
                     {
-                        float aspectRatio = item.Icon.GetAspectRatio();
-                        SizeF s = new SizeF(item.Icon.GetWidth() / aspectRatio, item.Icon.GetHeight() / aspectRatio);
+                        float imageAspectRatio = item.Icon.GetAspectRatio();
+                        float itemAspectRatio = ItemSize.X / ItemSize.Y;
+
+                        SizeF s = SizeF.Empty;
+
+                        if (itemAspectRatio > imageAspectRatio)
+                        {
+                            // Item is wider than the image's aspect ratio
+                            s = new SizeF(ItemSize.Y * imageAspectRatio, ItemSize.Y);
+                        }
+                        else
+                        {
+                            // Item is narrower or equal to the image's aspect ratio
+                            s = new SizeF(ItemSize.X, ItemSize.X / imageAspectRatio);
+                        }
 
                         Vector2 centerPos = new Vector2(origin.X + ItemSize.X / 2f, origin.Y + ItemSize.Y / 2f);
                         ctx.AddImage(item.Icon.Texture, new RectangleF(centerPos.X - s.Width / 2f, centerPos.Y - s.Height / 2f, s.Width, s.Height), Color.White);
@@ -212,7 +252,7 @@ namespace CustomInventoryIV.Inventories
                     if (!string.IsNullOrWhiteSpace(item.BottomLeftText))
                     {
                         Vector2 textSize = ImGuiIV.CalcTextSize(item.BottomLeftText);
-                        ImGuiIV.SetCursorScreenPos(origin + new Vector2(0f, ItemSize.X - textSize.Y) + new Vector2(5f, -4f));
+                        ImGuiIV.SetCursorScreenPos(origin + new Vector2(0f, ItemSize.Y - textSize.Y) + new Vector2(5f, -4f));
                         ImGuiIV.TextColored(item.BottomLeftColor, item.BottomLeftText);
                     }
 
@@ -393,10 +433,19 @@ namespace CustomInventoryIV.Inventories
         }
 
         /// <summary>
+        /// Gets the amount of free slots currently available in this <see cref="BasicInventory"/>.
+        /// </summary>
+        /// <returns>The amount of free slots found.</returns>
+        public int GetAmountOfFreeSlots()
+        {
+            return items.Count(x => x == null);
+        }
+
+        /// <summary>
         /// Changes the capacity of this <see cref="BasicInventory"/>.
         /// </summary>
         /// <param name="capacity">The new capacity of the <see cref="BasicInventory"/>.</param>
-        /// <returns>If the new <paramref name="capacity"/> is less then the current capacity, this will return the items that where left behind. Otherwise, <see langword="null"/> is returned.</returns>
+        /// <returns>If the new <paramref name="capacity"/> is less then the current capacity, this will return the items that were left behind. Otherwise, <see langword="null"/> is returned.</returns>
         public List<BasicInventoryItem> Resize(int capacity)
         {
             if (Capacity == capacity)
@@ -411,6 +460,8 @@ namespace CustomInventoryIV.Inventories
             {
                 if (leftBehindItems.Count == 0)
                     leftBehindItems = null;
+
+                OnInventoryResized?.Invoke(this, leftBehindItems);
             }
 
             isResizing = false;
@@ -448,6 +499,12 @@ namespace CustomInventoryIV.Inventories
         /// <param name="item">The target <see cref="BasicInventoryItem"/> of which a popup item was clicked.</param>
         /// <param name="popupItemName">The name of the popup item within the <see cref="BasicInventoryItem"/>.</param>
         public delegate void PopupItemClickDelegate(BasicInventory sender, BasicInventoryItem item, string popupItemName);
+        /// <summary>
+        /// Delegate for when a <see cref="BasicInventory"/> was resized.
+        /// </summary>
+        /// <param name="target">Which <see cref="BasicInventory"/> was resized.</param>
+        /// <param name="leftBehindItems">If the new capacity of the <see cref="BasicInventory"/> is less then the current capacity, this will contain the items that were left behind. If no items were left behind, this will be <see langword="null"/>.</param>
+        public delegate void InventoryResizedDelegate(BasicInventory target, List<BasicInventoryItem> leftBehindItems);
 
         // Events
         /// <summary>
@@ -466,6 +523,11 @@ namespace CustomInventoryIV.Inventories
         /// </summary>
         public event PopupItemClickDelegate OnPopupItemClick;
 
+        /// <summary>
+        /// Gets raised when the inventory was resized using the <see cref="BasicInventory.Resize(int)"/> function.
+        /// </summary>
+        public event InventoryResizedDelegate OnInventoryResized;
+
         #endregion
 
         /// <inheritdoc/>
@@ -474,10 +536,12 @@ namespace CustomInventoryIV.Inventories
             if (!IsVisible)
                 return;
 
+            ImGuiIV_Viewport vp = ImGuiIV.MainViewport;
+
             // Push inventory style
             PushStyle();
 
-            if (ImGuiIV.Begin(string.Format("##CustomInventory_{0}", ID), ref isVisible, eImGuiWindowFlags.NoDecoration | eImGuiWindowFlags.AlwaysAutoResize))
+            if (ImGuiIV.Begin(string.Format("{0}##CustomInventory_{1}", Name, ID), ref isVisible, eImGuiWindowFlags.NoDecoration | eImGuiWindowFlags.AlwaysAutoResize, eImGuiWindowFlagsEx.DisableControllerInput))
             {
                 if (!isResizing)
                 {
@@ -487,9 +551,15 @@ namespace CustomInventoryIV.Inventories
                         DrawItem(i);
                     }
 
-                    // Custom drag & drop handler outside window
                     Vector2 pos = ImGuiIV.GetWindowPos();
                     Vector2 size = ImGuiIV.GetWindowSize();
+                    
+                    if (CenterInMiddleOfScreen)
+                        ImGuiIV.SetWindowPos((vp.Size * 0.5f - size * 0.5f) + Position);
+                    else
+                        ImGuiIV.SetWindowPos(Position);
+                    
+                    // Custom drag & drop handler outside window
                     RectangleF rect = new RectangleF(pos.X, pos.Y, size.X, size.Y);
 
                     if (!ImGuiIV.IsMouseHoveringRect(rect, false) && ImGuiIV.IsDragDropActive())

@@ -32,8 +32,9 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="ClonksCodingLib.GTAIV">
-      <HintPath>..\..\..\..\..\GitHub\GTAIV\ClonksCodingLib.GTAIV\ClonksCodingLib.GTAIV\ClonksCodingLib.GTAIV\bin\x86\Release\ClonksCodingLib.GTAIV.dll</HintPath>
+    <Reference Include="ClonksCodingLib.GTAIV, Version=1.8.0.31246, Culture=neutral, processorArchitecture=x86">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\ClonksCodingLib.GTAIV\ClonksCodingLib.GTAIV\ClonksCodingLib.GTAIV\bin\x86\Release\ClonksCodingLib.GTAIV.dll</HintPath>
     </Reference>
     <Reference Include="IVSDKDotNetWrapper">
       <HintPath>E:\Festplatte I Backup\Visual Studio Project Files\GTA IV\IV-SDK .NET\Builds\IV-SDK .NET v1.7\IVSDKDotNetWrapper.dll</HintPath>
@@ -42,6 +43,7 @@
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Drawing" />
     <Reference Include="System.Numerics" />
+    <Reference Include="System.Windows.Forms" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Main.cs" />

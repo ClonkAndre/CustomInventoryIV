@@ -2,13 +2,15 @@
 using System.Collections.Generic;
 using System.Drawing;
 
+using IVSDKDotNet.Attributes;
+
 namespace CustomInventoryIV.Inventories
 {
     public class BasicInventoryItem
     {
         #region Variables and Properties
         // Variables
-        private Guid id;
+        [ExcludeFromJsonSerialization] private Guid id;
         private uint hash;
         public Dictionary<string, object> Tags;
 
@@ -26,7 +28,7 @@ namespace CustomInventoryIV.Inventories
         private string bottomRightText;
         private Color bottomRightColor;
 
-        private CITexture icon;
+        [ExcludeFromJsonSerialization] private CITexture icon;
 
         /// <summary>
         /// The item collection of the right-click popup menu of this <see cref="BasicInventoryItem"/>.

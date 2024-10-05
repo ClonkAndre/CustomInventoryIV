@@ -1,8 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Numerics;
+using System.Runtime.InteropServices;
+using System.Windows.Forms;
 
 using CCL.GTAIV;
 
@@ -20,6 +23,7 @@ namespace CustomInventoryTest
 
         #region Variables
         private int playerPedHandle;
+        private int lastPlayerWeapon;
         private uint lastLoadedEpisode;
 
         public Dictionary<int, CITexture> loadedWeaponTextures;
@@ -29,6 +33,8 @@ namespace CustomInventoryTest
 
         private bool blockPlayerAbilityToCollectPickup;
         private Vector3 blockPosition;
+
+        private Stopwatch tabKeyWatch;
         #endregion
 
         #region Classes
@@ -56,6 +62,8 @@ namespace CustomInventoryTest
             loadedWeaponTextures = new Dictionary<int, CITexture>(32);
             inventoryPool = new InventoryPool();
 
+            tabKeyWatch = new Stopwatch();
+
             Uninitialize += Main_Uninitialize;
             Initialized += Main_Initialized;
             GameLoad += Main_GameLoad;
@@ -65,7 +73,7 @@ namespace CustomInventoryTest
         #endregion
 
         #region Methods
-        private void DropItem(BasicInventory inventory, BasicInventoryItem item)
+        private void DropItem(BasicInventory inventory, BasicInventoryItem item, float range = 0.0F)
         {
             if (inventory == null)
                 return;
@@ -80,6 +88,9 @@ namespace CustomInventoryTest
 
             GET_CHAR_COORDINATES(playerPedHandle, out Vector3 pos);
 
+            if (range != 0.0F)
+                pos = pos.Around(range);
+
             // Disable ability for local player to any pickups
             DISABLE_LOCAL_PLAYER_PICKUPS(true);
             blockPlayerAbilityToCollectPickup = true;
@@ -89,62 +100,30 @@ namespace CustomInventoryTest
             CreateWeaponPickupAtPosition(pos, weaponType, ammo);
 
             // Removes the item out of the inventory
-            basicInventory.RemoveItem(item);
+            inventory.RemoveItem(item);
+        }
+
+        private void OpenInventory(bool wasOpenedUsingController)
+        {
+            basicInventory.IsVisible = true;
+
+            if (wasOpenedUsingController)
+                wasInventoryOpenedViaController = true;
+        }
+        private void CloseInventory()
+        {
+            basicInventory.IsVisible = false;
+            wasInventoryOpenedViaController = false;
         }
         #endregion
 
         #region Functions
-        private string GetWeaponName(eWeaponType type)
+        public static float Lerp(float a, float b, float t)
         {
-            switch (type)
-            {
-                case eWeaponType.WEAPON_BASEBALLBAT: return "Baseball Bat";
-                case eWeaponType.WEAPON_POOLCUE: return "Pool Cue";
-                case eWeaponType.WEAPON_KNIFE: return "Knife";
-                case eWeaponType.WEAPON_GRENADE: return "Grenade";
-                case eWeaponType.WEAPON_MOLOTOV: return "Molotov";
-                case eWeaponType.WEAPON_PISTOL: return "Pistol";
-                case eWeaponType.WEAPON_DEAGLE: return "Deagle";
-                case eWeaponType.WEAPON_SHOTGUN: return "Shotgun";
-                case eWeaponType.WEAPON_BARETTA: return "Baretta";
-                case eWeaponType.WEAPON_MICRO_UZI: return "Micro SMG";
-                case eWeaponType.WEAPON_MP5: return "SMG";
-                case eWeaponType.WEAPON_AK47: return "Assault Rifle";
-                case eWeaponType.WEAPON_M4: return "Carbine Rifle";
-                case eWeaponType.WEAPON_SNIPERRIFLE: return "Sniper Rifle";
-                case eWeaponType.WEAPON_M40A1: return "Combat Sniper";
-                case eWeaponType.WEAPON_RLAUNCHER: return "Rocket Launcher";
-                case eWeaponType.WEAPON_FTHROWER: return "Flame Thrower";
-                case eWeaponType.WEAPON_MINIGUN: return "Minigun";
-                case eWeaponType.WEAPON_EPISODIC_1: return "Grenade Launcher";
-                case eWeaponType.WEAPON_EPISODIC_2: return "Assault Shotgun";
-                case eWeaponType.WEAPON_EPISODIC_3: return null;
-                case eWeaponType.WEAPON_EPISODIC_4: return "Pool Cue";
-                case eWeaponType.WEAPON_EPISODIC_5: return null;
-                case eWeaponType.WEAPON_EPISODIC_6: return "Sawn-Off Shotgun";
-                case eWeaponType.WEAPON_EPISODIC_7: return "Automatic 9mm";
-                case eWeaponType.WEAPON_EPISODIC_8: return "Pipe Bomb";
-                case eWeaponType.WEAPON_EPISODIC_9: return "Pistol .44";
-                case eWeaponType.WEAPON_EPISODIC_10: return "Explosive Automatic Shotgun";
-                case eWeaponType.WEAPON_EPISODIC_11: return "Automatic Shotgun";
-                case eWeaponType.WEAPON_EPISODIC_12: return "Assault SMG";
-                case eWeaponType.WEAPON_EPISODIC_13: return "Gold SMG";
-                case eWeaponType.WEAPON_EPISODIC_14: return "Advanced MG";
-                case eWeaponType.WEAPON_EPISODIC_15: return "Advanced Sniper";
-                case eWeaponType.WEAPON_EPISODIC_16: return "Sticky Bomb";
-                case eWeaponType.WEAPON_EPISODIC_17: return null;
-                case eWeaponType.WEAPON_EPISODIC_18: return null;
-                case eWeaponType.WEAPON_EPISODIC_19: return null;
-                case eWeaponType.WEAPON_EPISODIC_20: return null;
-                case eWeaponType.WEAPON_EPISODIC_21: return "Parachute";
-                case eWeaponType.WEAPON_EPISODIC_22: return null;
-                case eWeaponType.WEAPON_EPISODIC_23: return null;
-                case eWeaponType.WEAPON_EPISODIC_24: return null;
-                case eWeaponType.WEAPON_CAMERA: return "Camera";
-                case eWeaponType.WEAPON_OBJECT: return "Object";
-            }
+            // Clamp t between 0 and 1
+            t = Math.Max(0.0f, Math.Min(1.0f, t));
 
-            return null;
+            return a + (b - a) * t;
         }
 
         private int CreateWeaponPickupAtPosition(Vector3 pos, int weaponType, int ammo)
@@ -161,23 +140,28 @@ namespace CustomInventoryTest
         }
         #endregion
 
+        private bool wasInventoryOpenedViaController;
+        public Vector2 itemSize;
+
         private void Main_Uninitialize(object sender, EventArgs e)
         {
             inventoryPool.Clear();
         }
         private void Main_Initialized(object sender, EventArgs e)
         {
-            basicInventory = new BasicInventory(8);
+            basicInventory = new BasicInventory("TestInventory", 8);
             basicInventory.OnItemDraggedOut += BasicInventory_OnItemDraggedOut;
             basicInventory.OnPopupItemClick += BasicInventory_OnPopupItemClick;
             basicInventory.OnItemClick += BasicInventory_OnItemClick;
-            basicInventory.Name = "TestInventory";
-            basicInventory.IsVisible = true;
+            basicInventory.OnInventoryResized += BasicInventory_OnInventoryResized;
+            basicInventory.ItemSize = new Vector2(128f, 100f);
+
+            itemSize = basicInventory.ItemSize;
 
             inventoryPool.Add(basicInventory);
         }
 
-        private void Main_GameLoad(object sender, EventArgs e)
+        private void LoadTextures()
         {
             if (loadedWeaponTextures.Count != 0)
             {
@@ -215,6 +199,10 @@ namespace CustomInventoryTest
                 }
             }
         }
+        private void Main_GameLoad(object sender, EventArgs e)
+        {
+            LoadTextures();
+        }
 
         private void Main_OnImGuiRendering(IntPtr devicePtr, ImGuiIV_DrawingContext ctx)
         {
@@ -240,36 +228,149 @@ namespace CustomInventoryTest
         }
         private void BasicInventory_OnItemClick(BasicInventory sender, BasicInventoryItem item, int itemIndex)
         {
-            if (itemIndex == 0)
+            if (item.Tags.ContainsKey("IsIncludedWeapon"))
             {
-                sender.Resize(12);
+                int weaponType = Convert.ToInt32(item.Tags["WeaponType"]);
+                lastPlayerWeapon = weaponType;
+                SET_CURRENT_CHAR_WEAPON(playerPedHandle, weaponType, false);
             }
-            else if (itemIndex == 1)
-            {
-                List<BasicInventoryItem> leftBehindItems = sender.Resize(8);
 
-                if (leftBehindItems != null)
+            if (wasInventoryOpenedViaController)
+                CloseInventory();
+
+            //if (itemIndex == 0)
+            //{
+            //    sender.Resize(12);
+            //}
+            //else if (itemIndex == 1)
+            //{
+            //    List<BasicInventoryItem> leftBehindItems = sender.Resize(8);
+
+            //    if (leftBehindItems != null)
+            //    {
+            //        IVGame.Console.PrintError(string.Format("There are {0} left behind items:", leftBehindItems.Count));
+            //        for (int i = 0; i < leftBehindItems.Count; i++)
+            //        {
+            //            BasicInventoryItem leftBehindItem = leftBehindItems[i];
+            //            IVGame.Console.PrintWarning(leftBehindItem.TopLeftText);
+            //        }
+            //    }
+            //    else
+            //    {
+            //        IVGame.Console.PrintError("There where no left behind items.");
+            //    }
+            //}
+        }
+        private void BasicInventory_OnInventoryResized(BasicInventory target, List<BasicInventoryItem> leftBehindItems)
+        {
+            if (leftBehindItems != null)
+            {
+                for (int i = 0; i < leftBehindItems.Count; i++)
                 {
-                    IVGame.Console.PrintError(string.Format("There where {0} left behind items:", leftBehindItems.Count));
-                    for (int i = 0; i < leftBehindItems.Count; i++)
-                    {
-                        BasicInventoryItem leftBehindItem = leftBehindItems[i];
-                        IVGame.Console.PrintWarning(leftBehindItem.TopLeftText);
-                    }
-                }
-                else
-                {
-                    IVGame.Console.PrintError("There where no left behind items.");
+                    BasicInventoryItem item = leftBehindItems[i];
+
+                    if (item.Tags.ContainsKey("IsIncludedWeapon"))
+                        DropItem(target, item, i * 0.15f);
                 }
             }
         }
 
+        private float lerpValue;
+        public int InventoryOpenTimeInMS = 150;
+        private bool setCursorPos;
+
+        [DllImport("user32.dll")]
+        public static extern bool SetCursorPos(int X, int Y);
+
         private void Main_Tick(object sender, EventArgs e)
         {
+            if (loadedWeaponTextures.Count == 0)
+                LoadTextures();
+
             IVPed playerPed = IVPed.FromUIntPtr(IVPlayerInfo.FindThePlayerPed());
 
             playerPedHandle = playerPed.GetHandle();
             GET_CHAR_COORDINATES(playerPedHandle, out Vector3 pos);
+            GET_PED_BONE_POSITION(playerPedHandle, (uint)eBone.BONE_HEAD, Vector3.Zero, out Vector3 headPos);
+
+            basicInventory.ItemSize = itemSize;
+
+            bool wasOpenedViaController = NativeControls.IsUsingJoypad() && NativeControls.IsControllerButtonPressed(0, ControllerButton.BUTTON_BUMPER_LEFT);
+            if (IsKeyPressed(Keys.Tab) || wasOpenedViaController)
+            {
+                if (tabKeyWatch.IsRunning)
+                {
+                    if (tabKeyWatch.ElapsedMilliseconds > InventoryOpenTimeInMS)
+                    {
+                        if (!basicInventory.IsVisible)
+                        {
+                            if (!setCursorPos)
+                            {
+                                GET_SCREEN_RESOLUTION(out int x, out int y);
+                                SetCursorPos(x / 2, y / 2);
+                                setCursorPos = true;
+                            }
+
+                            OpenInventory(wasOpenedViaController);
+                        }
+                    }
+                }
+                else
+                {
+                    tabKeyWatch.Start();
+                }
+            }
+            else
+            {
+                if (tabKeyWatch.IsRunning)
+                {
+                    if (tabKeyWatch.ElapsedMilliseconds < InventoryOpenTimeInMS)
+                    {
+                        // Switch to last weapon or fist
+                        GET_CURRENT_CHAR_WEAPON(playerPedHandle, out int currentWeapon);
+
+                        if ((eWeaponType)currentWeapon == eWeaponType.WEAPON_UNARMED)
+                        {
+                            if (HAS_CHAR_GOT_WEAPON(playerPedHandle, lastPlayerWeapon))
+                                SET_CURRENT_CHAR_WEAPON(playerPedHandle, lastPlayerWeapon, false);
+                        }
+                        else
+                        {
+                            lastPlayerWeapon = currentWeapon;
+                            SET_CURRENT_CHAR_WEAPON(playerPedHandle, (int)eWeaponType.WEAPON_UNARMED, false);
+                        }
+
+                    }
+
+                    tabKeyWatch.Reset();
+
+                    if (!wasInventoryOpenedViaController)
+                        basicInventory.IsVisible = false;
+                }
+            }
+
+            if (basicInventory.IsVisible)
+            {
+                basicInventory.PositionAtWorldCoordinate(headPos);
+
+                lerpValue = lerpValue + 0.02f;
+
+                if (lerpValue > 1.0f)
+                    lerpValue = 1.0f;
+
+                IVTimer.TimeScale = Lerp(1.0f, 0.25f, lerpValue);
+            }
+            else
+            {
+                setCursorPos = false;
+
+                lerpValue = lerpValue - 0.03f;
+
+                if (lerpValue < 0.0f)
+                    lerpValue = 0.0f;
+
+                IVTimer.TimeScale = Lerp(1.0f, 0.25f, lerpValue);
+            }
 
             if (blockPlayerAbilityToCollectPickup)
             {
@@ -312,14 +413,14 @@ namespace CustomInventoryTest
                 if (!basicInventory.ContainsItem(nameHash) && ammo0 != 0)
                 {
                     BasicInventoryItem item = new BasicInventoryItem(nameHash);
+                    item.Tags.Add("IsIncludedWeapon", null);
                     item.Tags.Add("WeaponType", weaponType);
 
                     item.PopupMenuItems.Add("Drop");
+                    item.TopLeftText = NativeGame.GetCommonWeaponName(type);
 
-                    item.TopLeftText = GetWeaponName(type);
-                    item.BottomLeftText = "0 Bullets";
-
-                    item.Icon = loadedWeaponTextures[weaponType];
+                    if (loadedWeaponTextures.ContainsKey(weaponType))
+                        item.Icon = loadedWeaponTextures[weaponType];
 
                     basicInventory.AddItem(item);
                 }
@@ -331,7 +432,27 @@ namespace CustomInventoryTest
                     {
                         if (ammo0 != 0)
                         {
-                            item.BottomLeftText = string.Format("{0} Bullets", ammo0);
+                            switch (type)
+                            {
+                                case eWeaponType.WEAPON_BASEBALLBAT:
+                                case eWeaponType.WEAPON_KNIFE:
+                                case eWeaponType.WEAPON_POOLCUE:
+                                    item.BottomLeftText = "1x";
+                                    break;
+
+                                case eWeaponType.WEAPON_GRENADE:
+                                case eWeaponType.WEAPON_MOLOTOV:
+                                    item.BottomLeftText = string.Format("{0}x", ammo0);
+                                    break;
+
+                                case eWeaponType.WEAPON_RLAUNCHER:
+                                    item.BottomLeftText = string.Format("{0} Rockets", ammo0);
+                                    break;
+
+                                default:
+                                    item.BottomLeftText = string.Format("{0} Bullets", ammo0);
+                                    break;
+                            }
                         }
                         else
                         {
