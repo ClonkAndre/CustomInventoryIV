@@ -69,6 +69,24 @@ namespace CustomInventoryIV.Base
             Name = name;
             IsVisible = false;
         }
+
+        /// <summary>
+        /// Creates a new instance of the <see cref="InventoryBase"/> class.
+        /// </summary>
+        /// <param name="isVisible">Sets if this inventory should be visible or not when created.</param>
+        public InventoryBase(bool isVisible)
+        {
+            ID = Guid.NewGuid();
+            IsVisible = isVisible;
+        }
+        /// <summary>
+        /// Creates a new instance of the <see cref="InventoryBase"/> class.
+        /// </summary>
+        public InventoryBase()
+        {
+            ID = Guid.NewGuid();
+            IsVisible = false;
+        }
         #endregion
 
         /// <summary>
