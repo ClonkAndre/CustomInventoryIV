@@ -196,7 +196,9 @@ namespace CustomInventoryIV.Inventories
                     // Right-click popup menu
                     if (item.PopupMenuItems != null)
                     {
-                        if (ImGuiIV.BeginPopupContextItem())
+                        string popupId = string.Format("##BasicInventory_{0}_ChildPopupMenu_{1}", ID, index);
+
+                        if (ImGuiIV.BeginPopupContextItem(popupId, eImGuiPopupFlags.MouseButtonRight))
                         {
                             for (int i = 0; i < item.PopupMenuItems.Count; i++)
                             {
@@ -208,6 +210,9 @@ namespace CustomInventoryIV.Inventories
 
                             ImGuiIV.EndPopup();
                         }
+
+                        if (ImGuiIV.IsKeyDown(eImGuiKey.ImGuiKey_GamepadR3))
+                            ImGuiIV.OpenPopup(popupId);
                     }
 
                     // Draw Icon

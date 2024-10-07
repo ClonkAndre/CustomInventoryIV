@@ -351,6 +351,11 @@ namespace CustomInventoryTest
 
             if (basicInventory.IsVisible)
             {
+                if (wasInventoryOpenedViaController && ImGuiIV.IsKeyDown(eImGuiKey.ImGuiKey_GamepadFaceUp))
+                {
+                    CloseInventory();
+                }
+
                 basicInventory.PositionAtWorldCoordinate(headPos);
 
                 lerpValue = lerpValue + 0.02f;
