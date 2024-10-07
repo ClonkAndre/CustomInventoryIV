@@ -24,6 +24,7 @@ namespace CustomInventoryIV.Inventories
 
         private bool isResizing;
         private bool centerInMiddleOfScreen;
+        private bool isAnyItemFocused;
 
         private Vector2 itemSize = new Vector2(128f);
 
@@ -61,6 +62,12 @@ namespace CustomInventoryIV.Inventories
         {
             get => centerInMiddleOfScreen;
             set => centerInMiddleOfScreen = value;
+        }
+
+        public bool IsAnyItemFocused
+        {
+            get => isAnyItemFocused;
+            private set => isAnyItemFocused = value;
         }
         #endregion
 
@@ -131,7 +138,10 @@ namespace CustomInventoryIV.Inventories
                 ImGuiIV.PushStyleVar(eImGuiStyleVar.FramePadding, Vector2.Zero);
 
                 if (ImGuiIV.Button(string.Format("{0}##BasicInventory_{1}_ChildButton_{2}", item == null ? "" : item.ButtonText, ID, index), ItemSize))
-                    OnItemClick?.Invoke(this, item, index);
+                {
+                    if (item != null)
+                        OnItemClick?.Invoke(this, item, index);
+                }
 
                 ImGuiIV.PopStyleVar();
 
@@ -181,6 +191,12 @@ namespace CustomInventoryIV.Inventories
                 // Do stuff when item object is valid
                 if (item != null)
                 {
+                    item.IsFocused = ImGuiIV.IsItemFocused();
+
+                    // Tooltip
+                    if (!string.IsNullOrWhiteSpace(item.ButtonTooltip))
+                        ImGuiIV.SetItemTooltip(item.ButtonTooltip);
+
                     // Drag & Drop Source
                     if (ImGuiIV.BeginDragDropSource(eImGuiDragDropFlags.None))
                     {
@@ -196,7 +212,10 @@ namespace CustomInventoryIV.Inventories
                     // Right-click popup menu
                     if (item.PopupMenuItems != null)
                     {
-                        string popupId = string.Format("##BasicInventory_{0}_ChildPopupMenu_{1}", ID, index);
+                        string popupId = string.Format("##BasicInventory_{0}_ChildPopupMenu_{1}", ID, item.ID);
+
+                        if (item.IsFocused && ImGuiIV.IsKeyDown(eImGuiKey.ImGuiKey_GamepadR3))
+                            ImGuiIV.OpenPopup(popupId);
 
                         if (ImGuiIV.BeginPopupContextItem(popupId, eImGuiPopupFlags.MouseButtonRight))
                         {
@@ -210,9 +229,6 @@ namespace CustomInventoryIV.Inventories
 
                             ImGuiIV.EndPopup();
                         }
-
-                        if (ImGuiIV.IsKeyDown(eImGuiKey.ImGuiKey_GamepadR3))
-                            ImGuiIV.OpenPopup(popupId);
                     }
 
                     // Draw Icon
@@ -438,6 +454,21 @@ namespace CustomInventoryIV.Inventories
         }
 
         /// <summary>
+        /// Gets the currently focused <see cref="BasicInventoryItem"/>.
+        /// </summary>
+        /// <returns>The currently focused <see cref="BasicInventoryItem"/> if any. Otherwise <see langword="null"/>.</returns>
+        public BasicInventoryItem GetFocusedItem()
+        {
+            return items.Where(x =>
+            {
+                if (x == null)
+                    return false;
+
+                return x.IsFocused;
+            }).FirstOrDefault();
+        }
+
+        /// <summary>
         /// Gets the amount of free slots currently available in this <see cref="BasicInventory"/>.
         /// </summary>
         /// <returns>The amount of free slots found.</returns>
@@ -555,6 +586,8 @@ namespace CustomInventoryIV.Inventories
                     {
                         DrawItem(i);
                     }
+
+                    IsAnyItemFocused = ImGuiIV.IsAnyItemFocused();
 
                     Vector2 pos = ImGuiIV.GetWindowPos();
                     Vector2 size = ImGuiIV.GetWindowSize();

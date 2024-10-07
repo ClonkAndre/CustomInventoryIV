@@ -351,9 +351,23 @@ namespace CustomInventoryTest
 
             if (basicInventory.IsVisible)
             {
-                if (wasInventoryOpenedViaController && ImGuiIV.IsKeyDown(eImGuiKey.ImGuiKey_GamepadFaceUp))
+                if (wasInventoryOpenedViaController)
                 {
-                    CloseInventory();
+                    if (!basicInventory.IsAnyItemFocused)
+                    {
+                        if (ImGuiIV.IsKeyDown(eImGuiKey.ImGuiKey_GamepadFaceRight))
+                            CloseInventory();
+                    }
+                    else
+                    {
+                        if (ImGuiIV.IsKeyDown(eImGuiKey.ImGuiKey_GamepadFaceUp))
+                        {
+                            BasicInventoryItem item = basicInventory.GetFocusedItem();
+
+                            if (item != null)
+                                DropItem(basicInventory, item);
+                        }
+                    }
                 }
 
                 basicInventory.PositionAtWorldCoordinate(headPos);
@@ -424,8 +438,10 @@ namespace CustomInventoryTest
                     item.PopupMenuItems.Add("Drop");
                     item.TopLeftText = NativeGame.GetCommonWeaponName(type);
 
-                    if (loadedWeaponTextures.ContainsKey(weaponType))
-                        item.Icon = loadedWeaponTextures[weaponType];
+                    item.ButtonTooltip = "Test";
+
+                    //if (loadedWeaponTextures.ContainsKey(weaponType))
+                    //    item.Icon = loadedWeaponTextures[weaponType];
 
                     basicInventory.AddItem(item);
                 }

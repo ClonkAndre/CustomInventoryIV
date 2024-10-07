@@ -14,7 +14,10 @@ namespace CustomInventoryIV.Inventories
         private uint hash;
         public Dictionary<string, object> Tags;
 
+        [ExcludeFromJsonSerialization] private bool isFocused;
+
         private string buttonText;
+        private string buttonTooltip;
 
         private string topLeftText;
         private Color topLeftColor;
@@ -55,12 +58,30 @@ namespace CustomInventoryIV.Inventories
         }
 
         /// <summary>
+        /// Gets if this item currently has the focus.
+        /// </summary>
+        public bool IsFocused
+        {
+            get => isFocused;
+            internal set => isFocused = value;
+        }
+
+        /// <summary>
         /// The text of the button in the center.
         /// </summary>
         public string ButtonText
         {
             get => buttonText;
             set => buttonText = value;
+        }
+
+        /// <summary>
+        /// The tooltip text of the button.
+        /// </summary>
+        public string ButtonTooltip
+        {
+            get => buttonTooltip;
+            set => buttonTooltip = value;
         }
 
         /// <summary>
