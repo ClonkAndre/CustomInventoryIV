@@ -29,17 +29,26 @@ namespace CustomInventoryIV.Base
             get => id;
             private set => id = value;
         }
+        /// <summary>
+        /// Gets or sets the name of this inventory.
+        /// </summary>
         public string Name
         {
             get => name;
             set => name = value;
         }
+        /// <summary>
+        /// Gets or sets if this inventory should be visible on screen.
+        /// </summary>
         public bool IsVisible
         {
             get => isVisible;
             set => isVisible = value;
         }
 
+        /// <summary>
+        /// Gets or sets the on screen position of this inventory.
+        /// </summary>
         public Vector2 Position
         {
             get => position;

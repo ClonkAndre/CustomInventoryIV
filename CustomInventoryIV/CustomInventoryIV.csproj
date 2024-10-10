@@ -11,7 +11,7 @@
     <AssemblyName>CustomInventoryIV</AssemblyName>
     <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
-    <Deterministic>true</Deterministic>
+    <Deterministic>false</Deterministic>
     <Nullable>disable</Nullable>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
@@ -33,8 +33,8 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="IVSDKDotNetWrapper">
-      <HintPath>E:\Festplatte I Backup\Visual Studio Project Files\GTA IV\IV-SDK .NET\Builds\IV-SDK .NET v1.7\IVSDKDotNetWrapper.dll</HintPath>
+    <Reference Include="IVSDKDotNetWrapper, Version=1.7.0.0, Culture=neutral, processorArchitecture=x86">
+      <HintPath>..\packages\IVSDKDotNetWrapper.1.7.0\lib\net472\IVSDKDotNetWrapper.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="Microsoft.CSharp" />
@@ -49,6 +49,9 @@
     <Compile Include="Inventories\BasicInventoryItem.cs" />
     <Compile Include="InventoryPool.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

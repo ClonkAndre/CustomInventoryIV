@@ -64,6 +64,9 @@ namespace CustomInventoryIV.Inventories
             set => centerInMiddleOfScreen = value;
         }
 
+        /// <summary>
+        /// Gets if any item in this <see cref="BasicInventory"/> is focused.
+        /// </summary>
         public bool IsAnyItemFocused
         {
             get => isAnyItemFocused;
@@ -101,6 +104,10 @@ namespace CustomInventoryIV.Inventories
         #endregion
 
         #region Methods
+        /// <summary>
+        /// Positions this <see cref="BasicInventory"/> at a <see cref="Vector2"/> screen position based on a <see cref="Vector3"/> world position. 
+        /// </summary>
+        /// <param name="pos"></param>
         public void PositionAtWorldCoordinate(Vector3 pos)
         {
             GET_GAME_VIEWPORT_ID(out int viewportid);
@@ -113,6 +120,17 @@ namespace CustomInventoryIV.Inventories
 
             GET_VIEWPORT_POSITION_OF_COORD(pos, viewportid, out Vector2 screenPos);
             Position = screenPos;
+        }
+
+        /// <summary>
+        /// Clears the <see cref="BasicInventory"/>.
+        /// </summary>
+        public void Clear()
+        {
+            for (int i = 0; i < Capacity; i++)
+            {
+                items[i] = null;
+            }
         }
 
         private void DrawItem(int index)
@@ -166,6 +184,9 @@ namespace CustomInventoryIV.Inventories
 
                             // Insert dragged item at new position
                             InsertItem(index, draggedItem);
+
+                            // Invoke event that tells subscribers that an item moved to another slot
+                            OnItemDraggedToNewSlot?.Invoke(this, draggedItem, draggedItemIndex, index);
                         }
                         else
                         {
@@ -183,6 +204,10 @@ namespace CustomInventoryIV.Inventories
 
                             // Insert the item that the dragged item was dragged on to at the slot the dragged item was before
                             InsertItem(draggedItemIndex, item);
+
+                            // Invoke event that tells subscribers that these 2 items moved to another slot
+                            OnItemDraggedToNewSlot?.Invoke(this, draggedItem, draggedItemIndex, index);
+                            OnItemDraggedToNewSlot?.Invoke(this, item, index, draggedItemIndex);
                         }
                     }
                     ImGuiIV.EndDragDropTarget();
@@ -205,7 +230,10 @@ namespace CustomInventoryIV.Inventories
                         Marshal.StructureToPtr(index, ptr, true);
 
                         ImGuiIV.SetDragDropPayload(Name, ptr, (uint)size, eImGuiCond.None);
-                        ImGuiIV.Image(item.Icon.Texture, new Vector2(item.Icon.GetWidth(), item.Icon.GetHeight()));
+
+                        if (item.Icon != null)
+                            ImGuiIV.Image(item.Icon.GetTexture(), new Vector2(item.Icon.GetWidth(), item.Icon.GetHeight()));
+
                         ImGuiIV.EndDragDropSource();
                     }
 
@@ -251,7 +279,7 @@ namespace CustomInventoryIV.Inventories
                         }
 
                         Vector2 centerPos = new Vector2(origin.X + ItemSize.X / 2f, origin.Y + ItemSize.Y / 2f);
-                        ctx.AddImage(item.Icon.Texture, new RectangleF(centerPos.X - s.Width / 2f, centerPos.Y - s.Height / 2f, s.Width, s.Height), Color.White);
+                        ctx.AddImage(item.Icon.GetTexture(), new RectangleF(centerPos.X - s.Width / 2f, centerPos.Y - s.Height / 2f, s.Width, s.Height), Color.White);
                     }
 
                     // Draw Top Left Text
@@ -293,7 +321,7 @@ namespace CustomInventoryIV.Inventories
 
         #region Functions
         /// <summary>
-        /// Adds a <see cref="BasicInventoryItem"/> at the next available position in this <see cref="BasicInventory"/>.
+        /// Tries to add a <see cref="BasicInventoryItem"/> at the next available position in this <see cref="BasicInventory"/>.
         /// </summary>
         /// <param name="item"></param>
         /// <returns><see langword="true"/> if added. Otherwise <see langword="false"/>.</returns>
@@ -348,14 +376,13 @@ namespace CustomInventoryIV.Inventories
 
             items[index] = null;
 
-            //items.RemoveAt(index);
             return true;
         }
         /// <summary>
         /// Removes all <see cref="BasicInventoryItem"/> instances from this <see cref="BasicInventory"/> with the given <paramref name="hash"/>.
         /// </summary>
         /// <param name="hash">The hash of the <see cref="BasicInventoryItem"/> instances to remove.</param>
-        /// <returns>The number of items removed.</returns>
+        /// <returns><see langword="true"/> if removed. Otherwise <see langword="false"/>.</returns>
         public bool RemoveItem(uint hash)
         {
             if (!ContainsItem(hash))
@@ -375,7 +402,29 @@ namespace CustomInventoryIV.Inventories
                 }
             }
 
-            //return items.RemoveAll(x => x.Hash == hash);
+            return false;
+        }
+        /// <summary>
+        /// Removes all <see cref="BasicInventoryItem"/> instances from this <see cref="BasicInventory"/> with the given <paramref name="id"/>.
+        /// </summary>
+        /// <param name="id">The id of the <see cref="BasicInventoryItem"/> instances to remove.</param>
+        /// <returns><see langword="true"/> if removed. Otherwise <see langword="false"/>.</returns>
+        public bool RemoveItem(Guid id)
+        {
+            for (int i = 0; i < Capacity; i++)
+            {
+                BasicInventoryItem slot = items[i];
+
+                if (slot == null)
+                    continue;
+
+                if (slot.ID == id)
+                {
+                    items[i] = null;
+                    return true;
+                }
+            }
+
             return false;
         }
         /// <summary>
@@ -421,6 +470,21 @@ namespace CustomInventoryIV.Inventories
                 return x.Hash == hash;
             });
         }
+        /// <summary>
+        /// Checks if a <see cref="BasicInventoryItem"/> with the given <paramref name="id"/> exists in this <see cref="BasicInventory"/>.
+        /// </summary>
+        /// <param name="id">The id of a <see cref="BasicInventoryItem"/> to look for.</param>
+        /// <returns><see langword="true"/> if exists. Otherwise <see langword="false"/>.</returns>
+        public bool ContainsItem(Guid id)
+        {
+            return items.Any(x =>
+            {
+                if (x == null)
+                    return false;
+
+                return x.ID == id;
+            });
+        }
 
         /// <summary>
         /// Gets a <see cref="BasicInventoryItem"/> at the given <paramref name="index"/>.
@@ -451,6 +515,30 @@ namespace CustomInventoryIV.Inventories
 
                 return x.Hash == hash;
             }).FirstOrDefault();
+        }
+        /// <summary>
+        /// Gets a <see cref="BasicInventoryItem"/> which has this <paramref name="id"/>.
+        /// </summary>
+        /// <param name="id">The ID to look for.</param>
+        /// <returns>The <see cref="BasicInventoryItem"/> if found. Otherwise <see langword="null"/>.</returns>
+        public BasicInventoryItem GetItem(Guid id)
+        {
+            return items.Where(x =>
+            {
+                if (x == null)
+                    return false;
+
+                return x.ID == id;
+            }).FirstOrDefault();
+        }
+
+        /// <summary>
+        /// Gets all the <see cref="BasicInventoryItem"/> items that are stored within this <see cref="BasicInventory"/>.
+        /// </summary>
+        /// <returns>An array of <see cref="BasicInventoryItem"/> which contains all the stored items within this <see cref="BasicInventory"/>.</returns>
+        public BasicInventoryItem[] GetItems()
+        {
+            return items.Where(x => x != null).ToArray();
         }
 
         /// <summary>
@@ -522,6 +610,14 @@ namespace CustomInventoryIV.Inventories
         /// <param name="itemIndex">The index where the <see cref="BasicInventoryItem"/> is placed.</param>
         public delegate void ItemDraggedOutDelegate(BasicInventory sender, BasicInventoryItem item, int itemIndex);
         /// <summary>
+        /// Delegate for when an item was dragged to another slot in the <see cref="BasicInventory"/>.
+        /// </summary>
+        /// <param name="sender">Which <see cref="BasicInventory"/> sent this event.</param>
+        /// <param name="item">The target <see cref="BasicInventoryItem"/> which was dragged to another slot.</param>
+        /// <param name="oldIndex">The index where the <see cref="BasicInventoryItem"/> was placed before in the <see cref="BasicInventory"/>.</param>
+        /// <param name="newIndex">The index where the <see cref="BasicInventoryItem"/> is placed now in the <see cref="BasicInventory"/>.</param>
+        public delegate void ItemDraggedToNewSlotDelegate(BasicInventory sender, BasicInventoryItem item, int oldIndex, int newIndex);
+        /// <summary>
         /// Delegate for when a item in this <see cref="BasicInventory"/> was clicked.
         /// </summary>
         /// <param name="sender">Which <see cref="BasicInventory"/> sent this event.</param>
@@ -547,6 +643,11 @@ namespace CustomInventoryIV.Inventories
         /// Gets raised when an item is dragged out of this <see cref="BasicInventory"/>.
         /// </summary>
         public event ItemDraggedOutDelegate OnItemDraggedOut;
+
+        /// <summary>
+        /// Gets raised when an item was dragged to another slot in this <see cref="BasicInventory"/>.
+        /// </summary>
+        public event ItemDraggedToNewSlotDelegate OnItemDraggedToNewSlot;
 
         // Events
         /// <summary>

@@ -37,25 +37,6 @@ namespace CustomInventoryTest
         private Stopwatch tabKeyWatch;
         #endregion
 
-        #region Classes
-        public class Texture
-        {
-            public string FileName;
-            public IntPtr Ptr;
-
-            public Texture(string fileName, IntPtr ptr)
-            {
-                FileName = fileName;
-                Ptr = ptr;
-            }
-
-            public override string ToString()
-            {
-                return string.Format("FileName: {0}, Pointer: {1}", FileName, Ptr);
-            }
-        }
-        #endregion
-
         #region Constructor
         public Main()
         {
@@ -154,6 +135,7 @@ namespace CustomInventoryTest
             basicInventory.OnPopupItemClick += BasicInventory_OnPopupItemClick;
             basicInventory.OnItemClick += BasicInventory_OnItemClick;
             basicInventory.OnInventoryResized += BasicInventory_OnInventoryResized;
+            basicInventory.OnItemDraggedToNewSlot += BasicInventory_OnItemDraggedToNewSlot;
             basicInventory.ItemSize = new Vector2(128f, 100f);
 
             itemSize = basicInventory.ItemSize;
@@ -171,7 +153,8 @@ namespace CustomInventoryTest
                     for (int i = 0; i < 32; i++)
                     {
                         CITexture txt = loadedWeaponTextures[i];
-                        ImGuiIV.ReleaseTexture(ref txt.Texture);
+                        IntPtr texture = txt.GetTexture();
+                        ImGuiIV.ReleaseTexture(ref texture);
                     }
                     loadedWeaponTextures.Clear();
                 }
@@ -215,6 +198,10 @@ namespace CustomInventoryTest
             {
                 DropItem(sender, item);
             }
+        }
+        private void BasicInventory_OnItemDraggedToNewSlot(BasicInventory sender, BasicInventoryItem item, int oldIndex, int newIndex)
+        {
+            IVGame.Console.PrintWarning(string.Format("Item {0} was dragged from slot {1} to {2}", item.TopLeftText, oldIndex, newIndex));
         }
         private void BasicInventory_OnPopupItemClick(BasicInventory sender, BasicInventoryItem item, string popupItemName)
         {

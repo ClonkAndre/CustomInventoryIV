@@ -5,31 +5,36 @@ namespace CustomInventoryIV
 {
     /// <summary>
     /// A little class which stores a texture pointer and the texture size since.
-    /// <para>This class will be removed until the ClonksCodingLib.GTAIV library has its own Texture class.</para>
+    /// <para>This class will be removed until the ClonksCodingLib.GTAIV (or IV-SDK .NET) library has its own Texture class.</para>
     /// </summary>
     public class CITexture
     {
 
-        public IntPtr Texture;
-        public Size Size;
+        private IntPtr texture;
+        private Size size;
 
-        public CITexture(IntPtr texture, Size size)
+        public CITexture(IntPtr texturePtr, Size textureSize)
         {
-            Texture = texture;
-            Size = size;
+            texture = texturePtr;
+            size = textureSize;
+        }
+
+        public IntPtr GetTexture()
+        {
+            return texture;
         }
 
         public float GetAspectRatio()
         {
-            return Size.Width / Size.Height;
+            return size.Width / size.Height;
         }
         public int GetWidth()
         {
-            return Size.Width;
+            return size.Width;
         }
         public int GetHeight()
         {
-            return Size.Height;
+            return size.Height;
         }
 
     }
