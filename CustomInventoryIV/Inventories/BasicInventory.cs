@@ -232,7 +232,23 @@ namespace CustomInventoryIV.Inventories
                         ImGuiIV.SetDragDropPayload(Name, ptr, (uint)size, eImGuiCond.None);
 
                         if (item.Icon != null)
+                        {
+                            // Show the icon of this item when dragging the item
                             ImGuiIV.Image(item.Icon.GetTexture(), new Vector2(item.Icon.GetWidth(), item.Icon.GetHeight()));
+                        }
+                        else
+                        {
+                            // If the item has no icon, then show button text instead
+                            if (!string.IsNullOrWhiteSpace(item.ButtonText))
+                            {
+                                ImGuiIV.TextUnformatted(item.ButtonText);
+                            }
+                            else
+                            {
+                                // If item also has no button text, then we just show this
+                                ImGuiIV.TextUnformatted("Drop item here...");
+                            }
+                        }
 
                         ImGuiIV.EndDragDropSource();
                     }
@@ -240,22 +256,25 @@ namespace CustomInventoryIV.Inventories
                     // Right-click popup menu
                     if (item.PopupMenuItems != null)
                     {
-                        string popupId = string.Format("##BasicInventory_{0}_ChildPopupMenu_{1}", ID, item.ID);
-
-                        if (item.IsFocused && ImGuiIV.IsKeyDown(eImGuiKey.ImGuiKey_GamepadR3))
-                            ImGuiIV.OpenPopup(popupId);
-
-                        if (ImGuiIV.BeginPopupContextItem(popupId, eImGuiPopupFlags.MouseButtonRight))
+                        if (item.PopupMenuItems.Count != 0)
                         {
-                            for (int i = 0; i < item.PopupMenuItems.Count; i++)
+                            string popupId = string.Format("##BasicInventory_{0}_ChildPopupMenu_{1}", ID, item.ID);
+
+                            if (item.IsFocused && ImGuiIV.IsKeyDown(eImGuiKey.ImGuiKey_GamepadR3))
+                                ImGuiIV.OpenPopup(popupId);
+
+                            if (ImGuiIV.BeginPopupContextItem(popupId, eImGuiPopupFlags.MouseButtonRight))
                             {
-                                string popupMenuItem = item.PopupMenuItems[i];
+                                for (int i = 0; i < item.PopupMenuItems.Count; i++)
+                                {
+                                    string popupMenuItem = item.PopupMenuItems[i];
 
-                                if (ImGuiIV.Selectable(popupMenuItem))
-                                    OnPopupItemClick?.Invoke(this, item, popupMenuItem);
+                                    if (ImGuiIV.Selectable(popupMenuItem))
+                                        OnPopupItemClick?.Invoke(this, item, popupMenuItem);
+                                }
+
+                                ImGuiIV.EndPopup();
                             }
-
-                            ImGuiIV.EndPopup();
                         }
                     }
 
@@ -678,7 +697,12 @@ namespace CustomInventoryIV.Inventories
             // Push inventory style
             PushStyle();
 
-            if (ImGuiIV.Begin(string.Format("{0}##CustomInventory_{1}", Name, ID), ref isVisible, eImGuiWindowFlags.NoDecoration | eImGuiWindowFlags.AlwaysAutoResize, eImGuiWindowFlagsEx.DisableControllerInput))
+            eImGuiWindowFlagsEx exFlags = eImGuiWindowFlagsEx.DisableControllerInput;
+
+            //if (DoNotDisableInputs)
+            //    exFlags |= eImGuiWindowFlagsEx.NoMouseEnable;
+
+            if (ImGuiIV.Begin(string.Format("{0}##CustomInventory_{1}", Name, ID), ref isVisible, eImGuiWindowFlags.NoDecoration | eImGuiWindowFlags.AlwaysAutoResize, exFlags))
             {
                 if (!isResizing)
                 {

@@ -26,7 +26,7 @@ namespace CustomInventoryTest
         private int lastPlayerWeapon;
         private uint lastLoadedEpisode;
 
-        public Dictionary<int, CITexture> loadedWeaponTextures;
+        public Dictionary<int, ImTexture> loadedWeaponTextures;
 
         private InventoryPool inventoryPool;
         private BasicInventory basicInventory;
@@ -40,7 +40,7 @@ namespace CustomInventoryTest
         #region Constructor
         public Main()
         {
-            loadedWeaponTextures = new Dictionary<int, CITexture>(32);
+            loadedWeaponTextures = new Dictionary<int, ImTexture>(32);
             inventoryPool = new InventoryPool();
 
             tabKeyWatch = new Stopwatch();
@@ -152,7 +152,7 @@ namespace CustomInventoryTest
                 {
                     for (int i = 0; i < 32; i++)
                     {
-                        CITexture txt = loadedWeaponTextures[i];
+                        ImTexture txt = loadedWeaponTextures[i];
                         IntPtr texture = txt.GetTexture();
                         ImGuiIV.ReleaseTexture(ref texture);
                     }
@@ -175,9 +175,9 @@ namespace CustomInventoryTest
                 if (int.TryParse(fileName.Split('.')[0], out int result))
                 {
                     // Create texture
-                    if (ImGuiIV.CreateTextureFromFile(string.Format("{0}\\{1}", path, fileName), out IntPtr txtPtr, out int w, out int h, out eResult r))
+                    if (ImGuiIV.CreateTextureFromFile(string.Format("{0}\\{1}", path, fileName), out ImTexture texture, out eResult r))
                     {
-                        loadedWeaponTextures.Add(result, new CITexture(txtPtr, new Size(w, h)));
+                        loadedWeaponTextures.Add(result, texture);
                     }
                 }
             }

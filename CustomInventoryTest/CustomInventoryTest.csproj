@@ -36,8 +36,8 @@
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\..\ClonksCodingLib.GTAIV\ClonksCodingLib.GTAIV\ClonksCodingLib.GTAIV\bin\x86\Release\ClonksCodingLib.GTAIV.dll</HintPath>
     </Reference>
-    <Reference Include="IVSDKDotNetWrapper">
-      <HintPath>E:\Festplatte I Backup\Visual Studio Project Files\GTA IV\IV-SDK .NET\Builds\IV-SDK .NET v1.7\IVSDKDotNetWrapper.dll</HintPath>
+    <Reference Include="IVSDKDotNetWrapper, Version=1.8.0.0, Culture=neutral, processorArchitecture=x86">
+      <HintPath>..\packages\IVSDKDotNetWrapper.1.8.0\lib\net472\IVSDKDotNetWrapper.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="Microsoft.CSharp" />
@@ -54,6 +54,9 @@
       <Project>{46c296da-00ee-4b83-9b85-61bede599329}</Project>
       <Name>CustomInventoryIV</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
