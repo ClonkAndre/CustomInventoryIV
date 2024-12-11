@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Drawing;
 
+using IVSDKDotNet;
 using IVSDKDotNet.Attributes;
 
 namespace CustomInventoryIV.Inventories
@@ -31,7 +32,7 @@ namespace CustomInventoryIV.Inventories
         private string bottomRightText;
         private Color bottomRightColor;
 
-        [ExcludeFromJsonSerialization] private CITexture icon;
+        [ExcludeFromJsonSerialization] private ImTexture icon;
 
         /// <summary>
         /// The item collection of the right-click popup menu of this <see cref="BasicInventoryItem"/>.
@@ -155,7 +156,7 @@ namespace CustomInventoryIV.Inventories
         /// <summary>
         /// The icon of this item.
         /// </summary>
-        public CITexture Icon
+        public ImTexture Icon
         {
             get => icon;
             set => icon = value;
